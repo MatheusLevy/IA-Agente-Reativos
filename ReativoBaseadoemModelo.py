@@ -9,7 +9,7 @@ class Movimento(Enum):
     Esquerda = 3
     Direita = 4
       
-class ReativoSimples:
+class ReativoBaseadoemModelo:
     
     def __init__(self, Mapa, randomMov= True):
         self.randomMov = randomMov
@@ -18,7 +18,8 @@ class ReativoSimples:
         self.sentido = "direita"
         self.Ambiente = Mapa
         self.pontuacao = 0
-
+        self.Historico = []
+        self.UltimoEstado = (0,0)
     def Clean(self, x, y):
         if self.Ambiente.mapa[y][x] == 1:
             pontos = 10
@@ -29,25 +30,53 @@ class ReativoSimples:
         print("Clean")
         return pontos
 
+    def checaPreso(self):
+        if self.x - 1 >= 0:
+            if (self.x-1,self.y) not in self.Historico:
+                return False
+                
+        if self.x + 1 < self.Ambiente.n:
+            if(self.x+1, self.y) not in self.Historico:
+                return False
+        if self.y - 1 >= 0:
+            if (self.x, self.y-1) not in self.Historico:
+                return False
+        if self.y + 1 < self.Ambiente.m:
+            if(self.x, self.y+1) not in self.Historico:
+                return False
+        
+        return True
+
+    def validaMovimento(self, x_next, y_next):
+        if (x_next, y_next) in self.Historico and not self.checaPreso():
+            return False
+        return True
+
     def MovimentaRandom(self):
+        self.Historico.append((self.x,self.y))
         mv = random.choice(list(Movimento))
         print(mv)
+
         if mv == Movimento.Cima:
             if self.y - 1 >= 0:
-                self.y -= 1
+                if self.validaMovimento(self.x, self.y-1):
+                    self.y -= 1
                   
         elif mv == Movimento.Baixo:
             if self.y + 1 < self.Ambiente.m :
-                self.y += 1
+                if self.validaMovimento(self.x, self.y+1):
+                    self.y += 1
                   
         elif mv == Movimento.Esquerda:
             if self.x - 1 >= 0:
-                self.x -= 1
+                if self.validaMovimento(self.x-1,self.y):
+                    self.x -= 1
                    
         elif mv == Movimento.Direita:
             if self.x + 1 < self.Ambiente.n:
-                self.x += 1
-        
+                if self.validaMovimento(self.x+1, self.y):
+                    self.x += 1
+
     def MovimentaLinha(self):
         if self.sentido == "direita":
             if (self.x + 1 < self.Ambiente.n):
@@ -89,8 +118,8 @@ class ReativoSimples:
             print("obj " , self.Ambiente.objetosRestante)
             print("SelfX = ", self.x)
             print("SelfY = ", self.y )
-            self.Ambiente.renderizar('@','#',' ', X_Agente = self.x, Y_Agente = self.y)
-            self.LinhaMovimentation()
+            self.Ambiente.renderizar('@','#','*', X_Agente = self.x, Y_Agente = self.y)
+            self.RandomMovimentation()
             #input("Press Enter to continue...")
     
             
@@ -99,6 +128,6 @@ m1 = Mapa(m=20, n=20)
 m1.generate(123)
 #m1.renderizar('@','*')
 
-r1 = ReativoSimples(m1)
+r1 = ReativoBaseadoemModelo(m1)
 r1.executar()
 print("Pontuação Final: " , r1.pontuacao)
