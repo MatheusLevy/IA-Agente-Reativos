@@ -2,7 +2,10 @@ from enum import Enum
 import os
 import random
 from Mapa import Mapa
+import time
+import numpy as np
 
+#Enum dos movimentos possiveis pra o Agente
 class Movimento(Enum):
     Cima  = 1
     Baixo = 2
@@ -11,77 +14,93 @@ class Movimento(Enum):
       
 class ReativoSimples:
     
-    def __init__(self, Mapa, randomMov= True):
-        self.randomMov = randomMov
+    #@Parametros:
+    #RandomMov: True ou False Para definir movimentação Aleatório ou Linha a Linha
+    def __init__(self, Mapa, randomMov= True):      
+        self.Movimentacao = randomMov
         self.x = 0
         self.y = 0
-        self.sentido = "direita"
-        self.Ambiente = Mapa
-        self.pontuacao = 0
+        self.sentido = "direita" # Sentido pode ser esquerda ou direita Utilizado para movimentação Linha  a Linha
+        self.Ambiente = Mapa     # Recebe o mapa
+        self.pontuacao = 0       # Conta a pontuação do Agente 
 
+
+    #Função que pega um objeto no qual o agente esta em cima
     def Clean(self, x, y):
-        if self.Ambiente.mapa[y][x] == 1:
-            pontos = 10
-        elif self.Ambiente.mapa[y][x] == 2:
+        if self.Ambiente.mapa[y][x] == 1:           # Verifica se na posição existe um objeto de valor 1.
+            pontos = 10                             # Se sim, incrementa a pontuação
+        elif self.Ambiente.mapa[y][x] == 2:         # O mesmo para objetos de valor 2
             pontos = 20
-        self.Ambiente.mapa[y][x] = 0
-        self.Ambiente.objetosRestante -= 1
-        print("Clean")
-        return pontos
+        self.Ambiente.mapa[y][x] = 0                # Limpa o valor da localização colocando 0 no lugar
+        self.Ambiente.objetosRestante -= 1          # Decrementa os objetos restantes do mapa
+        return pontos   
 
+    #Define o movimento de subir
+    def Cima(self):
+        if self.y - 1 >= 0: #Verifica se não irá sair para fora do mapa
+            self.y -= 1     
+    #Define o movimento de descer
+    def Baixo(self):
+        if self.y + 1 < self.Ambiente.m : # Verifica se irá sair para fora do mapa
+            self.y += 1
+    #Define o movimento de ir para Esquerda
+    def Esquerda(self):
+        if self.x - 1 >= 0:
+            self.x -= 1
+    def Direita(self):
+        if self.x + 1 < self.Ambiente.n:
+            self.x += 1
+
+    #Define o movimento Aleatório
     def MovimentaRandom(self):
-        mv = random.choice(list(Movimento))
+        mv = random.choice(list(Movimento)) # Pega um movimento aleatório
         print(mv)
         if mv == Movimento.Cima:
-            if self.y - 1 >= 0:
-                self.y -= 1
-                  
+            self.Cima()
         elif mv == Movimento.Baixo:
-            if self.y + 1 < self.Ambiente.m :
-                self.y += 1
-                  
+            self.Baixo()
         elif mv == Movimento.Esquerda:
-            if self.x - 1 >= 0:
-                self.x -= 1
-                   
+            self.Esquerda()
         elif mv == Movimento.Direita:
-            if self.x + 1 < self.Ambiente.n:
-                self.x += 1
-        
+            self.Direita()
+    
+    # Define o movimento em linha:
     def MovimentaLinha(self):
         if self.sentido == "direita":
-            if (self.x + 1 < self.Ambiente.n):
-                self.x +=1
-            else:
-                if(self.y + 1 < self.Ambiente.m):
-                    self.y +=1
-                    self.sentido = "esquerda"
+            if (self.x + 1 < self.Ambiente.n): #Verifica se não esta no final da linha a direita
+                self.Direita()
+            else:                              #Se estiver no final da linha
+                self.Baixo()                   #Vai para baixo e agora percorre da direita para esquerda
+                self.sentido = "esquerda"
 
         elif self.sentido == "esquerda":
-            if(self.x -1 >= 0):
-                self.x -=1
+            if(self.x -1 >= 0):                # Verifica se não esta no final da linha a esquerda
+                self.Esquerda()                
             else:
                if(self.y + 1 < self.Ambiente.m):
-                    self.y +=1
+                    self.Baixo()               
                     self.sentido = "direita"
 
-
-    def RandomMovimentation(self):
-        print("Localidade: " , self.Ambiente.mapa[self.y][self.x])
-        if self.Ambiente.mapa[self.y][self.x] == 1 or self.Ambiente.mapa[self.y][self.x] == 2:
-            self.pontuacao += self.Clean(self.x,self.y)
-            self.MovimentaRandom()
+    #Verifica se exite um objeto na localização atual do agente
+    # @Parametros:
+    # LestadeObjetosPossiveis: Lista de valores de objetos no mapa neste caso [1,2] 
+    def VerficaObjeto(self, ListadeObejetosPossiveis):
+        for objeto in ListadeObejetosPossiveis:
+            if self.Ambiente.mapa[self.y][self.x] == objeto:
+                return True
+        return False
+    
+    #Define a movimentação do agente
+    def Movimenta(self):
+        if self.VerficaObjeto([1,2]): #Verifica se existe um objeto na localização atual
+            self.pontuacao += self.Clean(self.x,self.y) #Retira o objeto e incrementa a pontuação
         else:
-            self.MovimentaRandom()
+            if self.Movimentacao: 
+                self.MovimentaRandom()
+            else:
+                self.MovimentaLinha()
 
-    def LinhaMovimentation(self):
-        print("Localidade: " , self.Ambiente.mapa[self.y][self.x])
-        if self.Ambiente.mapa[self.y][self.x] == 1 or self.Ambiente.mapa[self.y][self.x] == 2:
-            self.pontuacao += self.Clean(self.x,self.y)
-            self.MovimentaLinha()
-        else:
-            self.MovimentaLinha()
-
+    
     def executar(self):
         while self.Ambiente.objetosRestante > 0:
             clear = lambda: os.system('cls')
@@ -90,15 +109,25 @@ class ReativoSimples:
             print("SelfX = ", self.x)
             print("SelfY = ", self.y )
             self.Ambiente.renderizar('@','#',' ', X_Agente = self.x, Y_Agente = self.y)
-            self.LinhaMovimentation()
-            #input("Press Enter to continue...")
-    
-            
-            
-m1 = Mapa(m=20, n=20)
-m1.generate(123)
-#m1.renderizar('@','*')
+            self.Movimenta() 
 
-r1 = ReativoSimples(m1)
-r1.executar()
-print("Pontuação Final: " , r1.pontuacao)
+Tempos = []
+for _ in range(5):   
+    m1 = Mapa(m=20, n=20)
+    m1.generate(123456)
+    inicio = time.process_time()
+    r1 = ReativoSimples(m1, randomMov= True)
+    r1.executar()
+    fim = time.process_time()
+    Tempos.append(fim-inicio)
+
+Tempos = np.array(Tempos)
+
+clear = lambda: os.system('cls')
+clear()
+
+print("Tempos: ", Tempos)
+print("Media: ", np.mean(Tempos), "s(+-) ", np.std(Tempos))
+
+
+#print("Pontuação Final: " , r1.pontuacao)

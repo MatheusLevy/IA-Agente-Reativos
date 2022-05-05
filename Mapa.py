@@ -16,9 +16,7 @@ class Mapa:
             return 0
         
         Pontos = geradordeCoordenadasXY(sum(self.objetos), self.n-1, self.m-1)
-        print(Pontos)
         
-        input("Press Enter to continue...")
         for i in range(0, 10):
             random_m, random_n = Pontos[i]
             self.mapa[random_m][random_n] = 1
