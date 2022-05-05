@@ -19,7 +19,8 @@ class ReativoBaseadoemModelo:
         self.Ambiente = Mapa
         self.pontuacao = 0
         self.Historico = []
-        self.UltimoEstado = (0,0)
+
+        
     def Clean(self, x, y):
         if self.Ambiente.mapa[y][x] == 1:
             pontos = 10
@@ -118,7 +119,7 @@ class ReativoBaseadoemModelo:
             print("obj " , self.Ambiente.objetosRestante)
             print("SelfX = ", self.x)
             print("SelfY = ", self.y )
-            self.Ambiente.renderizar('@','#','*', X_Agente = self.x, Y_Agente = self.y)
+            self.Ambiente.renderizar('@','#','', X_Agente = self.x, Y_Agente = self.y)
             self.RandomMovimentation()
             #input("Press Enter to continue...")
     

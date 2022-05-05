@@ -26,6 +26,8 @@ class Mapa:
         for i in range(10, 20):
             random_m, random_n = Pontos[i]
             self.mapa[random_m][random_n] = 2
+        
+        return Pontos
                 
 
 
