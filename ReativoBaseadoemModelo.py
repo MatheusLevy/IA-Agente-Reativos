@@ -153,7 +153,7 @@ for _ in range(5):
     m1 = Mapa(m=20, n=20)
     m1.generate(123456)
     inicio = time.process_time()
-    r1 = ReativoBaseadoemModelo(m1, randomMov= False)
+    r1 = ReativoBaseadoemModelo(m1, randomMov= True)
     r1.executar()
     fim = time.process_time()
     Tempos.append(fim-inicio)
