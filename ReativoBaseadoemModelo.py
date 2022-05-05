@@ -2,6 +2,8 @@ from enum import Enum
 import os
 import random
 from Mapa import Mapa
+import numpy as np
+import time
 
 class Movimento(Enum):
     Cima  = 1
@@ -12,105 +14,124 @@ class Movimento(Enum):
 class ReativoBaseadoemModelo:
     
     def __init__(self, Mapa, randomMov= True):
-        self.randomMov = randomMov
+        self.Movimentacao = randomMov
         self.x = 0
         self.y = 0
         self.sentido = "direita"
         self.Ambiente = Mapa
         self.pontuacao = 0
-        self.Historico = []
+        self.Historico = [] #Histórico de Lugares passados pelo Agente
 
         
-    def Clean(self, x, y):
-        if self.Ambiente.mapa[y][x] == 1:
-            pontos = 10
-        elif self.Ambiente.mapa[y][x] == 2:
-            pontos = 20
-        self.Ambiente.mapa[y][x] = 0
-        self.Ambiente.objetosRestante -= 1
-        print("Clean")
-        return pontos
 
+    #Função que pega um objeto no qual o agente esta em cima
+    def Clean(self, x, y):
+        if self.Ambiente.mapa[y][x] == 1:           # Verifica se na posição existe um objeto de valor 1.
+            pontos = 10                             # Se sim, incrementa a pontuação
+        elif self.Ambiente.mapa[y][x] == 2:         # O mesmo para objetos de valor 2
+            pontos = 20
+        self.Ambiente.mapa[y][x] = 0                # Limpa o valor da localização colocando 0 no lugar
+        self.Ambiente.objetosRestante -= 1          # Decrementa os objetos restantes do mapa
+        return pontos   
+
+
+    #Verifica se o agente ficou preso, ou seja, percorreu todos os 4 posição ao seu redor (cima, baixo, esquerda e direita)
+    #Se isso acontecer como ele não pode passar novamente num lugar que já passoue ele fica preso
     def checaPreso(self):
-        if self.x - 1 >= 0:
-            if (self.x-1,self.y) not in self.Historico:
+        if self.x - 1 >= 0: #Verifica se a posição a direita não ultrapassa os limites do mapa
+            if (self.x-1,self.y) not in self.Historico:  #Caso não Ultrapasse verifica se essa posição já esta na lista de Historico de posições
                 return False
-                
-        if self.x + 1 < self.Ambiente.n:
-            if(self.x+1, self.y) not in self.Historico:
+        if self.x + 1 < self.Ambiente.n:    #Verifica se a posição a esquerda não ultrapassa os limites do mapa
+            if(self.x+1, self.y) not in self.Historico: 
                 return False
         if self.y - 1 >= 0:
-            if (self.x, self.y-1) not in self.Historico:
+            if (self.x, self.y-1) not in self.Historico:    # Verifica se a posição a cima não ultrapassa os limites do mapa
                 return False
         if self.y + 1 < self.Ambiente.m:
-            if(self.x, self.y+1) not in self.Historico:
+            if(self.x, self.y+1) not in self.Historico: #Verifica se a posição abaixo não ultrapassa os limites do mapa
                 return False
         
-        return True
+        return True #Caso ele passe por todos os if significa que todas as posições checadas já estão no Historico logo ele está preso
 
+    #Valida uma movimentação do agente
+    #Verifica se a posição que a agente deseja ir está no historico e e ele não esta preso o movimento é invalido
+    #Mas caso ele esteja preso é permitido que ele ande por um lugar que já andou
     def validaMovimento(self, x_next, y_next):
         if (x_next, y_next) in self.Historico and not self.checaPreso():
             return False
         return True
 
+    #Define o movimento de subir
+    def Cima(self):
+        if self.y - 1 >= 0: #Verifica se não irá sair para fora do mapa
+            if self.validaMovimento(self.x, self.y-1):
+                self.y -= 1
+
+    #Define o movimento de descer
+    def Baixo(self):
+        if self.y + 1 < self.Ambiente.m :
+            if self.validaMovimento(self.x, self.y+1):
+                self.y += 1
+
+    #Define o movimento de ir para Esquerda
+    def Esquerda(self):
+        if self.x - 1 >= 0:
+            if self.validaMovimento(self.x-1,self.y):
+                self.x -= 1
+        
+    def Direita(self):
+        if self.x + 1 < self.Ambiente.n:
+            if self.validaMovimento(self.x+1, self.y):
+                self.x += 1
+
+
     def MovimentaRandom(self):
-        self.Historico.append((self.x,self.y))
-        mv = random.choice(list(Movimento))
-        print(mv)
-
+        self.Historico.append((self.x,self.y)) #Adiciona a posição atual ao Historico de Posições
+        mv = random.choice(list(Movimento)) #Pega um movimento Aleatório
         if mv == Movimento.Cima:
-            if self.y - 1 >= 0:
-                if self.validaMovimento(self.x, self.y-1):
-                    self.y -= 1
-                  
+            self.Cima()
         elif mv == Movimento.Baixo:
-            if self.y + 1 < self.Ambiente.m :
-                if self.validaMovimento(self.x, self.y+1):
-                    self.y += 1
-                  
+            self.Baixo()
         elif mv == Movimento.Esquerda:
-            if self.x - 1 >= 0:
-                if self.validaMovimento(self.x-1,self.y):
-                    self.x -= 1
-                   
+            self.Esquerda()       
         elif mv == Movimento.Direita:
-            if self.x + 1 < self.Ambiente.n:
-                if self.validaMovimento(self.x+1, self.y):
-                    self.x += 1
+            self.Direita()
 
+    # Define o movimento em linha:
     def MovimentaLinha(self):
         if self.sentido == "direita":
-            if (self.x + 1 < self.Ambiente.n):
-                self.x +=1
-            else:
-                if(self.y + 1 < self.Ambiente.m):
-                    self.y +=1
-                    self.sentido = "esquerda"
+            if (self.x + 1 < self.Ambiente.n): #Verifica se não esta no final da linha a direita
+                self.Direita()
+            else:                              #Se estiver no final da linha
+                self.Baixo()                   #Vai para baixo e agora percorre da direita para esquerda
+                self.sentido = "esquerda"
 
         elif self.sentido == "esquerda":
-            if(self.x -1 >= 0):
-                self.x -=1
+            if(self.x -1 >= 0):                # Verifica se não esta no final da linha a esquerda
+                self.Esquerda()                
             else:
                if(self.y + 1 < self.Ambiente.m):
-                    self.y +=1
+                    self.Baixo()               
                     self.sentido = "direita"
 
-
-    def RandomMovimentation(self):
-        print("Localidade: " , self.Ambiente.mapa[self.y][self.x])
-        if self.Ambiente.mapa[self.y][self.x] == 1 or self.Ambiente.mapa[self.y][self.x] == 2:
-            self.pontuacao += self.Clean(self.x,self.y)
-            self.MovimentaRandom()
+    #Verifica se exite um objeto na localização atual do agente
+    # @Parametros:
+    # LestadeObjetosPossiveis: Lista de valores de objetos no mapa neste caso [1,2] 
+    def VerficaObjeto(self, ListadeObejetosPossiveis):
+        for objeto in ListadeObejetosPossiveis:
+            if self.Ambiente.mapa[self.y][self.x] == objeto:
+                return True
+        return False
+    
+    #Define a movimentação do agente
+    def Movimenta(self):
+        if self.VerficaObjeto([1,2]): #Verifica se existe um objeto na localização atual
+            self.pontuacao += self.Clean(self.x,self.y) #Retira o objeto e incrementa a pontuação
         else:
-            self.MovimentaRandom()
-
-    def LinhaMovimentation(self):
-        print("Localidade: " , self.Ambiente.mapa[self.y][self.x])
-        if self.Ambiente.mapa[self.y][self.x] == 1 or self.Ambiente.mapa[self.y][self.x] == 2:
-            self.pontuacao += self.Clean(self.x,self.y)
-            self.MovimentaLinha()
-        else:
-            self.MovimentaLinha()
+            if self.Movimentacao: 
+                self.MovimentaRandom()
+            else:
+                self.MovimentaLinha()
 
     def executar(self):
         while self.Ambiente.objetosRestante > 0:
@@ -120,15 +141,29 @@ class ReativoBaseadoemModelo:
             print("SelfX = ", self.x)
             print("SelfY = ", self.y )
             self.Ambiente.renderizar('@','#','', X_Agente = self.x, Y_Agente = self.y)
-            self.RandomMovimentation()
+            self.Movimenta()
             #input("Press Enter to continue...")
     
             
             
+
+            
+Tempos = []
+for _ in range(5):   
+    m1 = Mapa(m=20, n=20)
+    m1.generate(123456)
+    inicio = time.process_time()
+    r1 = ReativoBaseadoemModelo(m1, randomMov= False)
+    r1.executar()
+    fim = time.process_time()
+    Tempos.append(fim-inicio)
+
+Tempos = np.array(Tempos)
+
+clear = lambda: os.system('cls')
+clear()
+
+print("Tempos: ", Tempos)
+print("Media: ", np.mean(Tempos), "s(+-) ", np.std(Tempos))
 m1 = Mapa(m=20, n=20)
 m1.generate(123)
-#m1.renderizar('@','*')
-
-r1 = ReativoBaseadoemModelo(m1)
-r1.executar()
-print("Pontuação Final: " , r1.pontuacao)
